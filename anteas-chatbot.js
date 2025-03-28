@@ -1,4 +1,5 @@
-// Chat Widget Script
+<!-- Chat Widget Script Anteas -->
+<script>
 (function() {
     // Create and inject styles
     const styles = `
@@ -251,26 +252,6 @@
             height: 24px;
             fill: currentColor;
         }
-
-        .n8n-chat-widget .chat-footer {
-            padding: 8px;
-            text-align: center;
-            background: var(--chat--color-background);
-            border-top: 1px solid rgba(133, 79, 255, 0.1);
-        }
-
-        .n8n-chat-widget .chat-footer a {
-            color: var(--chat--color-primary);
-            text-decoration: none;
-            font-size: 12px;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-            font-family: inherit;
-        }
-
-        .n8n-chat-widget .chat-footer a:hover {
-            opacity: 1;
-        }
     `;
 
     // Load Geist font
@@ -289,6 +270,16 @@
         webhook: {
             url: '',
             route: ''
+        },
+        branding: {
+            logo: '',
+            name: '',
+            welcomeText: '',
+            responseTimeText: '',
+            poweredBy: {
+                text: 'Powered by n8n',
+                link: 'https://n8n.partnerlinks.io/m8a94i19zhqq?utm_source=nocodecreative.io'
+            }
         },
         style: {
             primaryColor: '',
@@ -355,9 +346,6 @@
             <div class="chat-input">
                 <textarea placeholder="Type your message here..." rows="1"></textarea>
                 <button type="submit">Send</button>
-            </div>
-            <div class="chat-footer">
-                <a href="${config.branding.poweredBy.link}" target="_blank">${config.branding.poweredBy.text}</a>
             </div>
         </div>
     `;
@@ -491,3 +479,4 @@
         });
     });
 })();
+</script>
