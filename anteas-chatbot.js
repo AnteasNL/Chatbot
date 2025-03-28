@@ -192,44 +192,6 @@
             height: 24px;
             fill: currentColor;
         }
-
-        /* New bubble styles */
-        .n8n-chat-widget .speech-bubble {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            background: white;
-            border-radius: 12px;
-            padding: 12px;
-            max-width: 250px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            font-size: 14px;
-            position: relative;
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s, transform 0.3s;
-        }
-
-        .n8n-chat-widget .speech-bubble.position-left {
-            right: auto;
-            left: 20px;
-        }
-
-        .n8n-chat-widget .speech-bubble::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            right: 20px;
-            border-width: 10px 10px 0;
-            border-style: solid;
-            border-color: white transparent;
-        }
-
-        .n8n-chat-widget .speech-bubble.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
     `;
 
     // Load Geist font
@@ -260,8 +222,7 @@
             secondaryColor: '',
             position: 'right',
             backgroundColor: '#ffffff',
-            fontColor: '#333333',
-            bubbleText: 'How can I help you today?'
+            fontColor: '#333333'
         }
     };
 
@@ -293,12 +254,12 @@
     chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
     
     const chatInterfaceHTML = `
+        <div class="brand-header">
+            <img src="${config.branding.logo}" alt="${config.branding.name}">
+            <span>${config.branding.name}</span>
+            <button class="close-button">×</button>
+        </div>
         <div class="chat-interface">
-            <div class="brand-header">
-                <img src="${config.branding.logo}" alt="${config.branding.name}">
-                <span>${config.branding.name}</span>
-                <button class="close-button">×</button>
-            </div>
             <div class="chat-messages"></div>
             <div class="chat-input">
                 <textarea placeholder="Type your message here..." rows="1"></textarea>
@@ -316,14 +277,8 @@
             <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.476 0-2.886-.313-4.156-.878l-3.156.586.586-3.156A7.962 7.962 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
         </svg>`;
     
-    // Create speech bubble
-    const speechBubble = document.createElement('div');
-    speechBubble.className = `speech-bubble${config.style.position === 'left' ? ' position-left' : ''}`;
-    speechBubble.textContent = config.style.bubbleText;
-    
     widgetContainer.appendChild(chatContainer);
     widgetContainer.appendChild(toggleButton);
-    widgetContainer.appendChild(speechBubble);
     document.body.appendChild(widgetContainer);
 
     const chatInterface = chatContainer.querySelector('.chat-interface');
@@ -335,7 +290,7 @@
         return crypto.randomUUID();
     }
 
-    async function startConversation() {
+    async function startNewConversation() {
         currentSessionId = generateUUID();
         const data = [{
             action: "loadPreviousSession",
@@ -356,6 +311,7 @@
             });
 
             const responseData = await response.json();
+            
             const botMessageDiv = document.createElement('div');
             botMessageDiv.className = 'chat-message bot';
             botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
@@ -404,28 +360,10 @@
         }
     }
 
-    function showSpeechBubble() {
-        speechBubble.classList.add('visible');
-        setTimeout(() => {
-            speechBubble.classList.remove('visible');
-        }, 3000);
-    }
-    
     toggleButton.addEventListener('click', () => {
-        // Hide speech bubble if it's visible
-        speechBubble.classList.remove('visible');
-        
-        // Open chat and start conversation if not already started
         chatContainer.classList.toggle('open');
         if (!currentSessionId) {
-            startConversation();
-        }
-    });
-    
-    // Show speech bubble when chat toggle is first hovered
-    toggleButton.addEventListener('mouseenter', () => {
-        if (!chatContainer.classList.contains('open')) {
-            showSpeechBubble();
+            startNewConversation();
         }
     });
     
@@ -448,11 +386,9 @@
         }
     });
 
-    // Add close button handlers
-    const closeButtons = chatContainer.querySelectorAll('.close-button');
-    closeButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            chatContainer.classList.remove('open');
-        });
+    // Add close button handler
+    const closeButton = chatContainer.querySelector('.close-button');
+    closeButton.addEventListener('click', () => {
+        chatContainer.classList.remove('open');
     });
 })();
