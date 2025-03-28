@@ -9,6 +9,7 @@
             --chat--color-background: var(--n8n-chat-background-color, #ffffff);
             --chat--color-font: var(--n8n-chat-font-color, #333333);
             font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            position: relative; /* Needed for the tooltip positioning */
         }
 
         .n8n-chat-widget .chat-container {
@@ -46,6 +47,17 @@
             position: relative;
         }
 
+        .n8n-chat-widget .brand-header img {
+            width: 32px;
+            height: 32px;
+        }
+
+        .n8n-chat-widget .brand-header span {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--chat--color-font);
+        }
+
         .n8n-chat-widget .close-button {
             position: absolute;
             right: 16px;
@@ -68,79 +80,10 @@
             opacity: 1;
         }
 
-        .n8n-chat-widget .brand-header img {
-            width: 32px;
-            height: 32px;
-        }
-
-        .n8n-chat-widget .brand-header span {
-            font-size: 18px;
-            font-weight: 500;
-            color: var(--chat--color-font);
-        }
-
-        .n8n-chat-widget .new-conversation {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 20px;
-            text-align: center;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        .n8n-chat-widget .welcome-text {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--chat--color-font);
-            margin-bottom: 24px;
-            line-height: 1.3;
-        }
-
-        .n8n-chat-widget .new-chat-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 16px 24px;
-            background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: transform 0.3s;
-            font-weight: 500;
-            font-family: inherit;
-            margin-bottom: 12px;
-        }
-
-        .n8n-chat-widget .new-chat-btn:hover {
-            transform: scale(1.02);
-        }
-
-        .n8n-chat-widget .message-icon {
-            width: 20px;
-            height: 20px;
-        }
-
-        .n8n-chat-widget .response-text {
-            font-size: 14px;
-            color: var(--chat--color-font);
-            opacity: 0.7;
-            margin: 0;
-        }
-
         .n8n-chat-widget .chat-interface {
-            display: none;
+            display: flex;
             flex-direction: column;
             height: 100%;
-        }
-
-        .n8n-chat-widget .chat-interface.active {
-            display: flex;
         }
 
         .n8n-chat-widget .chat-messages {
@@ -252,6 +195,28 @@
             height: 24px;
             fill: currentColor;
         }
+
+        /* Tooltip bubble above the chat toggle */
+        .n8n-chat-widget .chat-bubble-tooltip {
+            position: fixed;
+            bottom: 90px;
+            background: #fff;
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            font-size: 14px;
+            max-width: 250px;
+        }
+        .n8n-chat-widget .chat-bubble-tooltip::after {
+            content: "";
+            position: absolute;
+            bottom: -8px;
+            left: 20px;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #fff;
+        }
     `;
 
     // Load Geist font
@@ -265,7 +230,7 @@
     styleSheet.textContent = styles;
     document.head.appendChild(styleSheet);
 
-    // Default configuration
+    // Default configuration (Powered by removed)
     const defaultConfig = {
         webhook: {
             url: '',
@@ -275,11 +240,7 @@
             logo: '',
             name: '',
             welcomeText: '',
-            responseTimeText: '',
-            poweredBy: {
-                text: 'Powered by n8n',
-                link: 'https://n8n.partnerlinks.io/m8a94i19zhqq?utm_source=nocodecreative.io'
-            }
+            responseTimeText: ''
         },
         style: {
             primaryColor: '',
@@ -291,50 +252,36 @@
     };
 
     // Merge user config with defaults
-    const config = window.ChatWidgetConfig ? 
-        {
+    const config = window.ChatWidgetConfig
+        ? {
             webhook: { ...defaultConfig.webhook, ...window.ChatWidgetConfig.webhook },
             branding: { ...defaultConfig.branding, ...window.ChatWidgetConfig.branding },
             style: { ...defaultConfig.style, ...window.ChatWidgetConfig.style }
-        } : defaultConfig;
+        }
+        : defaultConfig;
 
     // Prevent multiple initializations
     if (window.N8NChatWidgetInitialized) return;
     window.N8NChatWidgetInitialized = true;
 
     let currentSessionId = '';
+    let hasLoadedSession = false;
 
     // Create widget container
     const widgetContainer = document.createElement('div');
     widgetContainer.className = 'n8n-chat-widget';
-    
+
     // Set CSS variables for colors
     widgetContainer.style.setProperty('--n8n-chat-primary-color', config.style.primaryColor);
     widgetContainer.style.setProperty('--n8n-chat-secondary-color', config.style.secondaryColor);
     widgetContainer.style.setProperty('--n8n-chat-background-color', config.style.backgroundColor);
     widgetContainer.style.setProperty('--n8n-chat-font-color', config.style.fontColor);
 
+    // Create chat container
     const chatContainer = document.createElement('div');
     chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
-    
-    const newConversationHTML = `
-        <div class="brand-header">
-            <img src="${config.branding.logo}" alt="${config.branding.name}">
-            <span>${config.branding.name}</span>
-            <button class="close-button">×</button>
-        </div>
-        <div class="new-conversation">
-            <h2 class="welcome-text">${config.branding.welcomeText}</h2>
-            <button class="new-chat-btn">
-                <svg class="message-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
-                </svg>
-                Send us a message
-            </button>
-            <p class="response-text">${config.branding.responseTimeText}</p>
-        </div>
-    `;
 
+    // Create chat interface (always present, no "new conversation" screen)
     const chatInterfaceHTML = `
         <div class="chat-interface">
             <div class="brand-header">
@@ -349,58 +296,64 @@
             </div>
         </div>
     `;
-    
-    chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
-    
+    chatContainer.innerHTML = chatInterfaceHTML;
+
+    // Create toggle button (the chat bubble)
     const toggleButton = document.createElement('button');
     toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
     toggleButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.476 0-2.886-.313-4.156-.878l-3.156.586.586-3.156A7.962 7.962 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
-        </svg>`;
-    
+        </svg>
+    `;
+
+    // Add tooltip bubble above the chat bubble
+    const tooltip = document.createElement('div');
+    tooltip.className = 'chat-bubble-tooltip';
+    tooltip.textContent = "Hi! I'm Wonderchat's AI assistant, how can I help you?";
+
+    // Position the tooltip left or right depending on config
+    if (config.style.position === 'left') {
+        tooltip.style.left = '20px';
+    } else {
+        tooltip.style.right = '20px';
+    }
+
+    // Append everything
     widgetContainer.appendChild(chatContainer);
     widgetContainer.appendChild(toggleButton);
     document.body.appendChild(widgetContainer);
+    document.body.appendChild(tooltip);
 
-    const newChatBtn = chatContainer.querySelector('.new-chat-btn');
-    const chatInterface = chatContainer.querySelector('.chat-interface');
+    // Grab important elements
     const messagesContainer = chatContainer.querySelector('.chat-messages');
     const textarea = chatContainer.querySelector('textarea');
     const sendButton = chatContainer.querySelector('button[type="submit"]');
+    const closeButton = chatContainer.querySelector('.close-button');
 
-    function generateUUID() {
-        return crypto.randomUUID();
-    }
-
-    async function startNewConversation() {
-        currentSessionId = generateUUID();
+    // Function to load previous session (or start new)
+    async function loadSession() {
+        currentSessionId = crypto.randomUUID();
         const data = [{
             action: "loadPreviousSession",
             sessionId: currentSessionId,
             route: config.webhook.route,
-            metadata: {
-                userId: ""
-            }
+            metadata: { userId: "" }
         }];
 
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 
             const responseData = await response.json();
-            chatContainer.querySelector('.brand-header').style.display = 'none';
-            chatContainer.querySelector('.new-conversation').style.display = 'none';
-            chatInterface.classList.add('active');
-
             const botMessageDiv = document.createElement('div');
             botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
+            botMessageDiv.textContent = Array.isArray(responseData)
+                ? responseData[0].output
+                : responseData.output;
             messagesContainer.appendChild(botMessageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         } catch (error) {
@@ -408,17 +361,17 @@
         }
     }
 
+    // Send a message to the bot
     async function sendMessage(message) {
         const messageData = {
             action: "sendMessage",
             sessionId: currentSessionId,
             route: config.webhook.route,
             chatInput: message,
-            metadata: {
-                userId: ""
-            }
+            metadata: { userId: "" }
         };
 
+        // Display user's message
         const userMessageDiv = document.createElement('div');
         userMessageDiv.className = 'chat-message user';
         userMessageDiv.textContent = message;
@@ -428,17 +381,15 @@
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(messageData)
             });
-            
             const data = await response.json();
-            
             const botMessageDiv = document.createElement('div');
             botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(data) ? data[0].output : data.output;
+            botMessageDiv.textContent = Array.isArray(data)
+                ? data[0].output
+                : data.output;
             messagesContainer.appendChild(botMessageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         } catch (error) {
@@ -446,8 +397,22 @@
         }
     }
 
-    newChatBtn.addEventListener('click', startNewConversation);
-    
+    // Toggle chat open/close
+    toggleButton.addEventListener('click', () => {
+        chatContainer.classList.toggle('open');
+        // On first open, load session
+        if (chatContainer.classList.contains('open') && !hasLoadedSession) {
+            loadSession();
+            hasLoadedSession = true;
+        }
+    });
+
+    // Close button inside chat window
+    closeButton.addEventListener('click', () => {
+        chatContainer.classList.remove('open');
+    });
+
+    // Send message on button click
     sendButton.addEventListener('click', () => {
         const message = textarea.value.trim();
         if (message) {
@@ -455,7 +420,8 @@
             textarea.value = '';
         }
     });
-    
+
+    // Send message on Enter (no shift)
     textarea.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -465,18 +431,6 @@
                 textarea.value = '';
             }
         }
-    });
-    
-    toggleButton.addEventListener('click', () => {
-        chatContainer.classList.toggle('open');
-    });
-
-    // Add close button handlers
-    const closeButtons = chatContainer.querySelectorAll('.close-button');
-    closeButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            chatContainer.classList.remove('open');
-        });
     });
 })();
 </script>
