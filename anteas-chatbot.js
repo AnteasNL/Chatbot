@@ -290,16 +290,6 @@
             url: '',
             route: ''
         },
-        branding: {
-            logo: '',
-            name: '',
-            welcomeText: '',
-            responseTimeText: '',
-            poweredBy: {
-                text: 'Powered by n8n',
-                link: 'https://n8n.partnerlinks.io/m8a94i19zhqq?utm_source=nocodecreative.io'
-            }
-        },
         style: {
             primaryColor: '',
             secondaryColor: '',
